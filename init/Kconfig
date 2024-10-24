@@ -1948,7 +1948,8 @@ config RUST
 	depends on RUST_IS_AVAILABLE
 	depends on !MODVERSIONS
 	depends on !GCC_PLUGIN_RANDSTRUCT
-	depends on !RANDSTRUCT
+	depends on RANDSTRUCT_NONE
+	depends on !SHADOW_CALL_STACK
 	depends on !DEBUG_INFO_BTF || PAHOLE_HAS_LANG_EXCLUDE
 	depends on !CFI_CLANG || HAVE_CFI_ICALL_NORMALIZE_INTEGERS_RUSTC
 	select CFI_ICALL_NORMALIZE_INTEGERS if CFI_CLANG
@@ -1974,6 +1975,11 @@ config RUSTC_VERSION_TEXT
 	default "$(RUSTC_VERSION_TEXT)"
 	help
 	  See `CC_VERSION_TEXT`.
+
+config RUSTC_LLVM_VERSION_TEXT
+	string
+	depends on RUST
+        default $(shell,command -v $(RUSTC) >/dev/null 2>&1 && $(RUSTC) -v --version | grep '^LLVM version' | sed -e 's/^.*: *//' || echo n)
 
 config BINDGEN_VERSION_TEXT
 	string

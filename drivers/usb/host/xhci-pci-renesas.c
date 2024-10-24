@@ -3,7 +3,6 @@
 
 #include <linux/acpi.h>
 #include <linux/firmware.h>
-#include <linux/module.h>
 #include <linux/pci.h>
 #include <linux/slab.h>
 #include <linux/unaligned.h>
@@ -663,3 +662,4 @@ MODULE_DESCRIPTION("Renesas xHCI PCI Host Controller Driver");
 MODULE_FIRMWARE(RENESAS_FW_NAME);
 MODULE_IMPORT_NS(xhci);
 MODULE_LICENSE("GPL v2");
+MODULE_FIRMWARE("renesas_usb_fw.mem");

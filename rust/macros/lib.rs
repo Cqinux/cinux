@@ -14,6 +14,7 @@ mod module;
 mod paste;
 mod pin_data;
 mod pinned_drop;
+mod versions;
 mod vtable;
 mod zeroable;
 
@@ -40,6 +41,18 @@ use proc_macro::TokenStream;
 ///     description: "My very own kernel module!",
 ///     license: "GPL",
 ///     alias: ["alternate_module_name"],
+///     params: {
+///        my_i32: i32 {
+///            default: 42,
+///            permissions: 0o000,
+///            description: "Example of i32",
+///        },
+///        writeable_i32: i32 {
+///            default: 42,
+///            permissions: 0o644,
+///            description: "Example of i32",
+///        },
+///    },
 /// }
 ///
 /// struct MyModule;
@@ -102,6 +115,12 @@ use proc_macro::TokenStream;
 #[proc_macro]
 pub fn module(ts: TokenStream) -> TokenStream {
     module::module(ts)
+}
+
+/// Declares multiple variants of a structure or impl code
+#[proc_macro_attribute]
+pub fn versions(attr: TokenStream, item: TokenStream) -> TokenStream {
+    versions::versions(attr, item)
 }
 
 /// Declares or implements a vtable trait.

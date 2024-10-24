@@ -171,11 +171,15 @@ tps6598x_block_read(struct tps6598x *tps, u8 reg, void *val, size_t len)
 		return regmap_raw_read(tps->regmap, reg, val, len);
 
 	ret = regmap_raw_read(tps->regmap, reg, data, len + 1);
-	if (ret)
+	if (ret) {
+		dev_err(tps->dev, "regmap_raw_read returned %d\n", ret);
 		return ret;
+	}
 
-	if (data[0] < len)
+	if (data[0] < len) {
+		dev_err(tps->dev, "expected %zu bytes, got %d\n", len, data[0]);
 		return -EIO;
+	}
 
 	memcpy(val, &data[1], len);
 	return 0;
@@ -470,7 +474,7 @@ static bool tps6598x_read_status(struct tps6598x *tps, u32 *status)
 
 	ret = tps6598x_read32(tps, TPS_REG_STATUS, status);
 	if (ret) {
-		dev_err(tps->dev, "%s: failed to read status\n", __func__);
+		dev_err(tps->dev, "%s: failed to read status: %d\n", __func__, ret);
 		return false;
 	}
 
@@ -545,23 +549,22 @@ static irqreturn_t cd321x_interrupt(int irq, void *data)
 	if (!event)
 		goto err_unlock;
 
+	tps6598x_write64(tps, TPS_REG_INT_CLEAR1, event);
+
 	if (!tps6598x_read_status(tps, &status))
-		goto err_clear_ints;
+		goto err_unlock;
 
 	if (event & APPLE_CD_REG_INT_POWER_STATUS_UPDATE)
 		if (!tps6598x_read_power_status(tps))
-			goto err_clear_ints;
+			goto err_unlock;
 
 	if (event & APPLE_CD_REG_INT_DATA_STATUS_UPDATE)
 		if (!tps6598x_read_data_status(tps))
-			goto err_clear_ints;
+			goto err_unlock;
 
 	/* Handle plug insert or removal */
 	if (event & APPLE_CD_REG_INT_PLUG_EVENT)
 		tps6598x_handle_plug_event(tps, status);
-
-err_clear_ints:
-	tps6598x_write64(tps, TPS_REG_INT_CLEAR1, event);
 
 err_unlock:
 	mutex_unlock(&tps->lock);
@@ -668,24 +671,23 @@ static irqreturn_t tps6598x_interrupt(int irq, void *data)
 	if (!(event1[0] | event1[1] | event2[0] | event2[1]))
 		goto err_unlock;
 
+	tps6598x_block_write(tps, TPS_REG_INT_CLEAR1, event1, intev_len);
+	tps6598x_block_write(tps, TPS_REG_INT_CLEAR2, event2, intev_len);
+
 	if (!tps6598x_read_status(tps, &status))
-		goto err_clear_ints;
+		goto err_unlock;
 
 	if ((event1[0] | event2[0]) & TPS_REG_INT_POWER_STATUS_UPDATE)
 		if (!tps6598x_read_power_status(tps))
-			goto err_clear_ints;
+			goto err_unlock;
 
 	if ((event1[0] | event2[0]) & TPS_REG_INT_DATA_STATUS_UPDATE)
 		if (!tps6598x_read_data_status(tps))
-			goto err_clear_ints;
+			goto err_unlock;
 
 	/* Handle plug insert or removal */
 	if ((event1[0] | event2[0]) & TPS_REG_INT_PLUG_EVENT)
 		tps6598x_handle_plug_event(tps, status);
-
-err_clear_ints:
-	tps6598x_block_write(tps, TPS_REG_INT_CLEAR1, event1, intev_len);
-	tps6598x_block_write(tps, TPS_REG_INT_CLEAR2, event2, intev_len);
 
 err_unlock:
 	mutex_unlock(&tps->lock);
